@@ -5,7 +5,7 @@
     CSV Parallel Normalization
 
     csvl.h
-    C library for processing a CSV file type and speeding up its elaboration.
+    C library for processing a CSV file type and speeding up its elaboration
 */
 
 #pragma once

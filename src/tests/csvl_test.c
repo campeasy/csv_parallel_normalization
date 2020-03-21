@@ -5,7 +5,7 @@
     CSV Parallel Normalization
 
     csvl_test.c
-    C program for testing the CSVL library.
+    C program for testing the CSVL library
 */
 
 #include "../libs/csvl/csvl.h"
