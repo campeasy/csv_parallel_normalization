@@ -1,0 +1,138 @@
+/*
+    AY 19/20
+    Salvatore Campisi
+    Parallel Programming on GPU
+    CSV Parallel Normalization
+
+    kernels.ocl
+    OpenCL kernels for accomplish the parallel normalization
+*/
+
+/*
+    The following kernel will "reduce" input_data to output_data (which must have
+    the dimension of the Number of Work Groups when this kernel is launched).
+    The kernel will insert in output_data the maximum values for each Work-Group.
+
+    For find the max value of a given buffer, this kernel must be launched two times:
+    the first one reduce to nwg elements and the second reduce to 1 element, which will
+    be the maximum value of input_data.
+*/
+kernel void max_find(global float * restrict output_data,
+                     global const float * restrict input_data,
+                     local float * restrict lmem,
+                     int nelements)
+{
+    // Getting the dimension of the launch grid:
+    // Global Work Size -> WorkItemsPerWorkGroup x WorkGroups:
+    const int gws = get_global_size(0);
+
+    // Getting the WorkItem global index in the launch grid:
+    int gi = get_global_id(0);
+
+    float max = -2147483647;
+
+    // Phase 1 - Sliding Window approach:
+    // On the given input data, each WorkItem will process elements gi+0*gws, gi+1*gws, ...
+    while(gi < nelements){
+        float tmp = input_data[gi];
+        if(max < tmp) max = tmp;
+        gi += gws;
+    }
+
+    // Phase 2 - Storing the found max value in Phase 1:
+    // Getting the WorkItem local index in the WorkGroup:
+    int li = get_local_id(0);
+    // Storing the found max value in local memory:
+    lmem[li] = max;
+
+    // Phase 3 - Halving Workers approach, reducing each WorkGroup to one value:
+    // Initializing the number of Workers as half of the WorkGroup's WorkItems:
+    const int lws = get_local_size(0);
+    int nworkers = lws >> 1;
+
+    while(nworkers > 0){
+        // Waiting that all WorkItems have stored the max value in local memory (Phase 2):
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        // If this WorkItem is one of the Workers in the WorkGroup:
+        if(li < nworkers){
+            if(max < lmem[li+nworkers]) max = lmem[li+nworkers];
+
+            // Updating the local memory:
+            lmem[li] = max;
+        }
+        // Halving the Workers:
+        nworkers >>= 1;
+    }
+
+    // Phase 4 - Storing the max value to output data (only if this is the first WorkItem of each WorkGroup):
+    if (li == 0){
+        // Getting the WorkGroup index:
+        int wi = get_group_id(0);
+        output_data[wi] = max;
+    }
+}
+
+/*
+    The following kernel will "reduce" input_data to output_data (which must have
+    the dimension of the Number of Work Groups when this kernel is launched).
+    The kernel will insert in output_data the minimum values for each WorkGroup.
+
+    For find the min value of a given buffer, this kernel must be launched two times:
+    the first one reduce to nwg elements and the second reduce to 1 element, which will
+    be the minimum value of input_data.
+*/
+kernel void min_find(global float * restrict output_data,
+                     global const float * restrict input_data,
+                     local float * restrict lmem,
+                     int nelements)
+{
+    // Getting the dimension of the launch grid:
+    // Global Work Size -> WorkItemsPerWorkGroup x WorkGroups:
+    const int gws = get_global_size(0);
+    // Getting the WorkItem global index in the launch grid:
+    int gi = get_global_id(0);
+
+    float min = 2147483647;
+
+    // Phase 1 - Sliding Window approach:
+    // On the given input Data, each WorkItem will process elements gi+0*gws, gi+1*gws, ...
+    while(gi < nelements){
+        float tmp = input_data[gi];
+        if(min > tmp) min = tmp;
+        gi += gws;
+    }
+
+    // Phase 2 - Storing the found min value in Phase 1:
+    // Getting the WorkItem local index in the WorkGroup:
+    int li = get_local_id(0);
+    // Storing the found min value in local memory:
+    lmem[li] = min;
+
+    // Phase 3 - Halving Workers approach, reducing each WorkGroup to one value:
+    // Initializing the number of Workers as half of the WorkGroup's WorkItems:
+    const int lws = get_local_size(0);
+    int nworkers = lws >> 1;
+
+    while(nworkers > 0){
+        // Waiting that all WorkItems have stored the min value in local memory (Phase 2):
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        // If this WorkItem is one of the Workers in the WorkGroup:
+        if(li < nworkers){
+            if(min > lmem[li+nworkers]) min = lmem[li+nworkers];
+
+            // Updating the local memory:
+            lmem[li] = min;
+        }
+        // Halving the Workers:
+        nworkers >>= 1;
+    }
+
+    // Phase 4 - Storing the min value to output data (only if this is the first WorkItem of each WorkGroup):
+    if (li == 0){
+        // Getting the WorkGroup index:
+        int wi = get_group_id(0);
+        output_data[wi] = min;
+    }
+}
