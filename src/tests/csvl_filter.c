@@ -4,7 +4,7 @@
     Parallel Programming on GPU
     CSV Parallel Normalization
 
-    csvl_test.c
+    csvl_filter.c
     C program which use the CSVL library for filtering a CSV file
 */
 
