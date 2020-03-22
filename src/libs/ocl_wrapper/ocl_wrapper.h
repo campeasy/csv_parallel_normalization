@@ -46,7 +46,7 @@ int main(int argc, char *argv[]){
 #include <string.h>
 
 #define CL_TARGET_OPENCL_VERSION 120
-#define BUFSIZE 4096
+#define BUFSIZE 16384
 
 /*
     Fill the buffer 'buff_to_fill' with the content of
@@ -107,7 +107,7 @@ cl_int force_device(const char * d){
     variable is not specified
 */
 cl_platform_id select_platform(){
-    printf("\n=========== OpenCL Wrapper v1.1 ===========\n");
+    printf("\n---------------- OpenCL Wrapper ------------------\n");
 
     cl_uint nplats;
     cl_int err;
@@ -120,16 +120,16 @@ cl_platform_id select_platform(){
     }
 
     err = clGetPlatformIDs(0, NULL, &nplats);
-    ocl_check(err, "[ERROR] counting platforms");
+    ocl_check(err, "[ERROR] Counting platforms");
 
-    printf("[OK] number of platforms: %u\n", nplats);
+    printf("[OK] Number of platforms: %u\n", nplats);
 
     plats = (cl_platform_id *) malloc(nplats * sizeof(*plats));
     err = clGetPlatformIDs(nplats, plats, NULL);
-    ocl_check(err, "[ERROR] getting platform IDs");
+    ocl_check(err, "[ERROR] Getting platform IDs");
 
     if (nump >= nplats){
-        fprintf(stderr, "[ERROR] no platform number %u", nump);
+        fprintf(stderr, "[ERROR] No platform number %u", nump);
         exit(1);
     }
 
@@ -137,10 +137,10 @@ cl_platform_id select_platform(){
 
     char buffer[BUFSIZE];
     err = clGetPlatformInfo(choice, CL_PLATFORM_NAME, BUFSIZE, buffer, NULL);
-    ocl_check(err, "[ERROR] getting platform name");
+    ocl_check(err, "[ERROR] Getting platform name");
 
-    printf("[OK] selected platform:   %d\n", nump);
-    printf("[OK] platform name:       %s\n", buffer);
+    printf("[OK] Selected platform:   %d\n", nump);
+    printf("[OK] Platform name:       %s\n", buffer);
 
     return choice;
 }
@@ -162,26 +162,26 @@ cl_device_id select_device(cl_platform_id p){
     }
 
     err = clGetDeviceIDs(p, CL_DEVICE_TYPE_ALL, 0, NULL, &ndevs);
-    ocl_check(err, "[ERROR] counting devices");
+    ocl_check(err, "[ERROR] Counting devices");
 
-    printf("[OK] number of devices:   %u\n", ndevs);
+    printf("[OK] Number of devices:   %u\n", ndevs);
 
     devs = (cl_device_id *) malloc(ndevs * sizeof(*devs));
     err = clGetDeviceIDs(p, CL_DEVICE_TYPE_ALL, ndevs, devs, NULL);
     ocl_check(err, "devices #2");
 
     if(numd >= ndevs){
-        fprintf(stderr, "[ERROR] no device number %u", numd);
+        fprintf(stderr, "[ERROR] No device number %u", numd);
         exit(1);
     }
 
     cl_device_id choice = devs[numd];
     char buffer[BUFSIZE];
     err = clGetDeviceInfo(choice, CL_DEVICE_NAME, BUFSIZE,buffer, NULL);
-    ocl_check(err, "[ERROR] device name");
+    ocl_check(err, "[ERROR] Device name");
 
-    printf("[OK] selected device:     %d\n", numd);
-    printf("[OK] device name:         %s\n", buffer);
+    printf("[OK] Selected device:     %d\n", numd);
+    printf("[OK] Device name:         %s\n", buffer);
 
     return choice;
 }
@@ -196,7 +196,7 @@ cl_context create_context(cl_platform_id p, cl_device_id d){
     };
 
     cl_context ctx = clCreateContext(ctx_prop, 1, &d, NULL, NULL, &err);
-    ocl_check(err, "[ERROR] create context");
+    ocl_check(err, "[ERROR] Create context");
 
     return ctx;
 }
@@ -207,7 +207,7 @@ cl_context create_context(cl_platform_id p, cl_device_id d){
 cl_command_queue create_queue(cl_context ctx, cl_device_id d){
     cl_int err;
     cl_command_queue que = clCreateCommandQueue(ctx, d, CL_QUEUE_PROFILING_ENABLE, &err);
-    ocl_check(err, "[ERROR] create queue");
+    ocl_check(err, "[ERROR] Create queue");
 
     return que;
 }
@@ -229,21 +229,21 @@ cl_program create_program(const char * const fname, cl_context ctx, cl_device_id
     memset(src_buf, 0, BUFSIZE);
     err = fill_buff(src_buf, fname);
     if(err == -1){
-        fprintf(stderr, "[ERROR] can't open file %s", fname);
+        fprintf(stderr, "[ERROR] Can't open file %s", fname);
         exit(1);
     }
-    printf("\n[INFO] compiling kernels file: %s \n", fname);
+    printf("\n[OK] Compiling kernels file: %s", fname);
 
     prg = clCreateProgramWithSource(ctx, 1, &buf_ptr, NULL, &err);
-    ocl_check(err, "[ERROR] create program");
+    ocl_check(err, "[ERROR] Create program");
 
     err = clBuildProgram(prg, 1, &dev, "-I.", NULL, NULL);
     errlog = clGetProgramBuildInfo(prg, dev, CL_PROGRAM_BUILD_LOG,0, NULL, &logsize);
-    ocl_check(errlog, "[ERROR] get program build log size");
+    ocl_check(errlog, "[ERROR] Get program build log size");
 
     log_buf = (char *) malloc(logsize);
     errlog = clGetProgramBuildInfo(prg, dev, CL_PROGRAM_BUILD_LOG, logsize, log_buf, NULL);
-    ocl_check(errlog, "[ERROR] get program build log");
+    ocl_check(errlog, "[ERROR] Get program build log");
 
     while (logsize > 0 &&
             (log_buf[logsize-1] == '\n' ||
@@ -257,10 +257,13 @@ cl_program create_program(const char * const fname, cl_context ctx, cl_device_id
     else{
         log_buf[logsize] = '\0';
     }
-    printf("\n--------- COMPILATION PROCESS LOG ---------\n%s", log_buf);
-    ocl_check(err, "[ERROR] build program");
 
-    printf("\n===========================================\n\n");
+    if(err != CL_SUCCESS){
+        printf("\n---------------- COMPILATION LOG ---------------\n%s", log_buf);
+    }
+    ocl_check(err, "[ERROR] Can't build program");
+    printf("\n--------------------------------------------------\n\n");
+
     return prg;
 }
 
@@ -274,10 +277,10 @@ cl_ulong runtime_ns(cl_event evt){
     cl_ulong start, end;
 
     err = clGetEventProfilingInfo(evt, CL_PROFILING_COMMAND_START, sizeof(start), &start, NULL);
-    ocl_check(err, "[ERROR] get start");
+    ocl_check(err, "[ERROR] Get start");
 
     err = clGetEventProfilingInfo(evt, CL_PROFILING_COMMAND_END, sizeof(end), &end, NULL);
-    ocl_check(err, "[ERROR] get end");
+    ocl_check(err, "[ERROR] Get end");
 
     return (end - start);
 }
@@ -287,9 +290,9 @@ cl_ulong total_runtime_ns(cl_event from, cl_event to){
     cl_ulong start, end;
 
     err = clGetEventProfilingInfo(from, CL_PROFILING_COMMAND_START, sizeof(start), &start, NULL);
-    ocl_check(err, "[ERROR] get start");
+    ocl_check(err, "[ERROR] Get start");
     err = clGetEventProfilingInfo(to, CL_PROFILING_COMMAND_END, sizeof(end), &end, NULL);
-    ocl_check(err, "[ERROR] get end");
+    ocl_check(err, "[ERROR] Get end");
 
     return (end - start);
 }

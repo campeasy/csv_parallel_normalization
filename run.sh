@@ -1,14 +1,17 @@
 #!/bin/zsh
 
 # Cleaning and compiling the binary file:
+echo "--------------------------------------------------"
+echo "      Parallel Normalization - Program Build      "
+echo "--------------------------------------------------"
 make clean
+echo "\n[OK] Binary files directory cleaned\n"
 make make
+echo "\n[OK] Host program correctly compiled\n"
 
-# Setting up the environment variables:
-export OCL_PLATFORM=0
-export OCL_DEVICE=1
+# Launching the host program:
+cd bin
+export OCL_PLATFORM=0 && export OCL_DEVICE=1 && ./main
 
-clear
-
-# Running the main binary file:
-./bin/main
+# Going back to previous folder:
+cd ..

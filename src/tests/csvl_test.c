@@ -17,8 +17,8 @@ int   N_COLS_CSV_TEST      = 3;
 int   SAMPLE_BUFFER_DIM    = 4;
 int   FLOAT_ARRAY_TEST_DIM = 4;
 
-float FLOAT_ARRAY_TEST[]   = {3.100,4.200,5.300,6.400};
-float SAMPLE_BUFFER[]      = {1.100,2.200,3.300,4.400};
+float FLOAT_ARRAY_TEST[]   = {3.100000,4.200000,5.300000,6.400000};
+float SAMPLE_BUFFER[]      = {1.100000,2.200000,3.300000,4.400000};
 char  csv_test_pathname[]  = "../../data/csvl_test.csv";
 
 // Routines for Testing:

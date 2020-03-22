@@ -262,9 +262,9 @@ int csvl_write_fcolumn(const char * csv_path,
             if(current_column_index == column_number_to_ovverride){
                 // If this is the last column:
                 if(current_column_index == csv_file_ncols){
-                    fprintf(temp_fd, "%.3f\n", buffer_to_write[row_counter]);
+                    fprintf(temp_fd, "%.6f\n", buffer_to_write[row_counter]);
                 }
-                else fprintf(temp_fd, "%.3f,", buffer_to_write[row_counter]);
+                else fprintf(temp_fd, "%.6f,", buffer_to_write[row_counter]);
             }
 
             // If this column must not be ovverriden:
