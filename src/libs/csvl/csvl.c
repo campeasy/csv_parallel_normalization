@@ -138,8 +138,6 @@ int csvl_columns_to_file(const char * csv_original_path,
         fprintf(csv_new_fd, "\n");
     }
 
-    fprintf(stdout, "[CSVL - OK] %s correctly processed\n", csv_original_path);
-    fprintf(stdout, "[CSVL - OK] %s correctly built\n", csv_new_path);
     fclose(csv_new_fd);
     fclose(csv_original_fd);
     return 0;

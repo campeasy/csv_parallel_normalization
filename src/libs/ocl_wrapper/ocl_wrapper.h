@@ -9,27 +9,6 @@
     common boilerplate of an OpenCL program
 */
 
-// Including this file, the boilerplate can be reduced to:
-# if 0
-#include "./ocl_wrapper.h"
-
-int main(int argc, char *argv[]){
-    // force_platform("0");
-    // force_device("1");
-
-    cl_platform_id p = select_platform();
-    cl_device_id d = select_device(p);
-    cl_context ctx = create_context(p, d);
-    cl_command_queue que = create_queue(ctx, d);
-    cl_program prog = create_program("kernels.ocl", ctx, d);
-
-    // Here starts the custom part: extract kernels,
-    // allocate buffers, run kernels, get results, etc.
-
-    return 0;
-}
-#endif
-
 #pragma once
 
 #ifdef __APPLE__

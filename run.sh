@@ -1,17 +1,19 @@
-#!/bin/zsh
+#    AY 19/20
+#    Salvatore Campisi
+#    Parallel Programming on GPU
+#    CSV Parallel Normalization
 
-# Cleaning and compiling the binary file:
-echo "--------------------------------------------------"
-echo "      Parallel Normalization - Program Build      "
-echo "--------------------------------------------------"
-make clean
-echo "\n[OK] Binary files directory cleaned\n"
-make make
-echo "\n[OK] Host program correctly compiled\n"
+#   run.sh
+#   Script for launching the project
 
-# Launching the host program:
-cd bin
-export OCL_PLATFORM=0 && export OCL_DEVICE=1 && ./main
+if [ $# -eq 2 ]
+then
+    # Launching the host program:
+    cd bin
+    export OCL_PLATFORM=$1 && export OCL_DEVICE=$2 && ./main
 
-# Going back to previous folder:
-cd ..
+    # Going back to previous folder:
+    cd ..
+else
+    echo "zsh run.sh OCL_PLATFORM_VALUE OCL_DEVICE_VALUE"
+fi
