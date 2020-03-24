@@ -9,6 +9,21 @@
 */
 
 /*
+    The following (simple) kernel will normalize output_data in range [0,1]
+    using the maximum and the minimum value of output_data.
+*/
+kernel void normalize(global float * restrict output_data,
+                      int nelements,
+                      float max,
+                      float min)
+{
+    const int i = get_global_id(0);
+    if(i >= nelements) return;
+
+    output_data[i] = (output_data[i] - min) / (max - min);
+}
+
+/*
     The following kernel will "reduce" input_data to output_data (which must have
     the dimension of the Number of Work Groups when this kernel is launched).
     The kernel will insert in output_data the maximum values for each Work-Group.
