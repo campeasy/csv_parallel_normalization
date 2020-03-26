@@ -12,10 +12,10 @@
     The following (simple) kernel will normalize output_data in range [0,1]
     using the maximum and the minimum value of output_data.
 */
-kernel void normalize(global float * restrict output_data,
-                      int nelements,
-                      float max,
-                      float min)
+kernel void normal(global float * restrict output_data,
+                   int nelements,
+                   float max,
+                   float min)
 {
     const int i = get_global_id(0);
     if(i >= nelements) return;
