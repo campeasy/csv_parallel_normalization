@@ -79,6 +79,32 @@ void csvl_print(const char * csv_path)
     return;
 }
 
+void csvl_preview(const char * csv_path, int k)
+{
+    // Opening the CSV file:
+    FILE * csv_fd = fopen(csv_path, "r");
+    if(csv_fd == NULL){
+        fprintf(stderr, "[CSVL - FAIL] Can't read %s\n", csv_path);
+        return;
+    }
+
+    int counter = 0;
+    char temp_row[ROW_MAX_SIZE];
+
+    // Printing the first five rows CSV file:
+    while(fgets(temp_row, ROW_MAX_SIZE, csv_fd) != NULL){
+        if(counter > k) break;
+
+        fprintf(stdout, "%s", temp_row);
+
+        ++counter;
+    }
+    fprintf(stdout, "..........\n\n");
+
+    fclose(csv_fd);
+    return;
+}
+
 int csvl_columns_to_file(const char * csv_original_path,
                          const char * csv_new_path,
                          const int * columns_array,

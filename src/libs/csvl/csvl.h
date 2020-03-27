@@ -38,6 +38,12 @@ int csvl_ncols (const char * csv_path);
 void csvl_print (const char * csv_pathname);
 
 /*
+    This routine takes the pathname of a CSV file and print
+    the content of the first k CSV's rows on the standard output.
+*/
+void csvl_preview(const char * csv_path, int k);
+
+/*
     This routine takes the pathname of a CSV file and the pathname of a new CSV file.
     The new CSV file will be created with the content of the columns specified in the given array.
     The routine returns 0 if everything is OK, -1 instead.

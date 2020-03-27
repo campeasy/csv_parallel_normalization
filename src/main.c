@@ -178,7 +178,7 @@ float get_min(float * host_buffer, int host_buffer_elements, int log,
     return temp_min;
 }
 
-int main(){
+int main(int argc, char *argv[]){
     printf("--------------------------------------------------\n");
     printf("              PARALLEL NORMALIZATION              \n");
     printf("--------------------------------------------------\n");
