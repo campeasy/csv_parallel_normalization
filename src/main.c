@@ -183,6 +183,54 @@ int main(int argc, char *argv[]){
     printf("              PARALLEL NORMALIZATION              \n");
     printf("--------------------------------------------------\n");
 
+    if(argc < 3){
+        fprintf(stdout, "[FAIL] Example of use: %s csv_pathname_to_normalize col_index1 col_index2 ... col_indexN \n", argv[0]);
+        fprintf(stdout, "                       %s csv_pathname_to_normalize ALL\n", argv[0]);
+        return -1;
+    }
+
+    int err;
+
+    // Building the pathname:
+    char * suffix = "../";
+    char * temp_pathname = argv[1];
+
+    char * csv_pathname = malloc(strlen(suffix) + strlen(temp_pathname) + 1);
+    strcpy(csv_pathname, suffix);
+    strcat(csv_pathname, temp_pathname);
+    csv_pathname = realpath(csv_pathname, NULL);
+
+    // Consistency Check:
+    FILE * fd = fopen(csv_pathname, "r"); 
+    if(fd == NULL){
+        fprintf(stdout, "[FAIL] Given file does not exist\n");
+        return -1;
+    }
+    fclose(fd);
+
+    // Creating the array with the columns to normalize:
+    int * cols_array;
+    int cols_array_dim;
+
+    if(strcmp("ALL", argv[2]) == 0){
+        cols_array_dim = csvl_ncols(csv_pathname);
+        cols_array_dim -= 1;
+        cols_array = (int *) malloc(sizeof(int) * cols_array_dim);
+
+        for(int i = 0; i<cols_array_dim; ++i){
+            cols_array[i] = i+1;
+        }
+    }
+    else{
+        cols_array_dim = argc - 2;
+        cols_array = (int *) malloc(sizeof(int) * cols_array_dim);
+
+        int current = 0;
+        for(int i = 0; i<cols_array_dim; ++i){
+            cols_array[i] = atoi(argv[i+2]);
+        }
+    }
+
     // Wrapped OpenCL boilerplate:
     cl_platform_id p = select_platform();
     cl_device_id d = select_device(p);
@@ -190,22 +238,16 @@ int main(int argc, char *argv[]){
     cl_command_queue q = create_queue(c, d);
     cl_program prog = create_program("../src/kernels/kernels.ocl", c, d);
 
-    int err;
-
-    char * csv_pathname = "../data/credit_card_fraud_PCA.csv";
-    csv_pathname = realpath(csv_pathname, NULL);
-
-    float * host_buffer;
     int n_elements;
+    float * host_buffer;
     float temp_max, temp_min;
 
     fprintf(stdout, "[LOG] START normalization of %s\n", csv_pathname);
 
-    int n_columns = csvl_ncols(csv_pathname);
-    for(int i=1; i<n_columns; ++i)
+    for(int i=0; i<cols_array_dim; ++i)
     {
         fprintf(stdout, "\n");
-        host_buffer = csvl_load_fcolumn(csv_pathname, i, &n_elements);
+        host_buffer = csvl_load_fcolumn(csv_pathname, cols_array[i], &n_elements);
         if(host_buffer == NULL) return -1;
 
         temp_max = get_max(host_buffer, n_elements, 1, prog, c, q);
@@ -213,7 +255,7 @@ int main(int argc, char *argv[]){
         host_buffer = normalize(host_buffer, n_elements, temp_max, temp_min, 1, prog, c, q, d);
 
         fprintf(stdout, "[LOG] Writing changes to disk ...\n");
-        err = csvl_write_fcolumn(csv_pathname, host_buffer, n_elements, i);
+        err = csvl_write_fcolumn(csv_pathname, host_buffer, n_elements, cols_array[i]);
         if(err == -1) return -1;
     }
 

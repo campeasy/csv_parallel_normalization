@@ -6,25 +6,22 @@
 #   run.sh
 #   Script for launching the project
 
-if [ $# -eq 2 ]
+if [ $# -ge 4 ]
 then
 	 # Data Backup:
-	 cd data
-    rm normalized.csv
-	 cp credit_card_fraud_PCA.csv backup.csv
-	 cd ..
+    rm data/normalized.csv
+	 cp $3 data/backup.csv
 
     # Launching the host program:
     cd bin
-    export OCL_PLATFORM=$1 && export OCL_DEVICE=$2 && ./main
+    export OCL_PLATFORM=$1 && export OCL_DEVICE=$2 && ./main "${@:3}"
     cd ..
 
-	 # Setting the correct names:
-	 cd data
-	 mv credit_card_fraud_PCA.csv normalized.csv
-	 mv backup.csv credit_card_fraud_PCA.csv
-	 cd ..
+	 # Setting the correct names for new data:
+	 mv $3 data/normalized.csv
+	 mv data/backup.csv $3
 
 else
-    echo "zsh run.sh OCL_PLATFORM_VALUE OCL_DEVICE_VALUE"
+    echo "[FAIL] Example of use: zsh run.sh OCL_PLATFORM_VALUE OCL_DEVICE_VALUE csv_pathname_to_normalize col_index1 col_index2 ... col_indexN"
+	 echo "                       zsh run.sh OCL_PLATFORM_VALUE OCL_DEVICE_VALUE csv_pathname_to_normalize ALL"
 fi
