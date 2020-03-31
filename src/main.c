@@ -43,7 +43,7 @@ float * normalize(float * host_buffer, int host_buffer_elements, float max, floa
     if(log == 1){
         // Times and bandwidths check:
         const double normalize_ms = runtime_ms(normalize_event);
-        const double normalize_gbs = (host_buffer_elements * sizeof(float))/1.0e6/normalize_ms;
+        const double normalize_gbs = (host_buffer_elements * sizeof(float) * 2)/1.0e6/normalize_ms;
 
         fprintf(stdout, "[LOG] Normalize:   %d elements, %.5f ms, %.5f GB/s\n", host_buffer_elements, normalize_ms, normalize_gbs);
     }
