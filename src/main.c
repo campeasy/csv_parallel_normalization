@@ -248,7 +248,11 @@ int main(int argc, char *argv[]){
     {
         fprintf(stdout, "\n");
         host_buffer = csvl_load_fcolumn(csv_pathname, cols_array[i], &n_elements);
-        if(host_buffer == NULL) return -1;
+        if(host_buffer == NULL){
+            fprintf(stderr, "[FAIL] Can't load from disk column %d\n", cols_array[i]);
+            fprintf(stderr, "[LOG] Exiting ...\n");
+            return -1;
+        }
 
         temp_max = get_max(host_buffer, n_elements, 1, prog, c, q);
         temp_min = get_min(host_buffer, n_elements, 1, prog, c, q);
@@ -256,7 +260,11 @@ int main(int argc, char *argv[]){
 
         fprintf(stdout, "[LOG] Writing changes to disk ...\n");
         err = csvl_write_fcolumn(csv_pathname, host_buffer, n_elements, cols_array[i]);
-        if(err == -1) return -1;
+        if(err == -1){
+            fprintf(stderr, "[FAIL] Can't write changes to disk for column %d\n", cols_array[i]);
+            fprintf(stderr, "[LOG] Exiting ...\n");
+            return -1;
+        }
     }
 
     fprintf(stdout, "\n[LOG] END normalization of %s\n", csv_pathname);
