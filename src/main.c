@@ -45,7 +45,7 @@ float * normalize(float * host_buffer, int host_buffer_elements, float max, floa
         const double normalize_ms = runtime_ms(normalize_event);
         const double normalize_gbs = (host_buffer_elements * sizeof(float) * 2)/1.0e6/normalize_ms;
 
-        fprintf(stdout, "[LOG] Normalize:   %d elements, %.5f ms, %.5f GB/s\n", host_buffer_elements, normalize_ms, normalize_gbs);
+        fprintf(stdout, "[LOG] Normalize:         %d elements, %.5f ms, %.5f GB/s\n", host_buffer_elements, normalize_ms, normalize_gbs);
     }
 
     clReleaseMemObject(device_buffer);
@@ -54,8 +54,76 @@ float * normalize(float * host_buffer, int host_buffer_elements, float max, floa
     return normalized_buffer;
 }
 
+float * get_max_min(float * host_buffer, int host_buffer_elements, int log,
+                    cl_program ocl_program, cl_context ocl_context, cl_command_queue ocl_queue)
+{
+    cl_int err;
+    cl_event max_min_find_event[2], read_event;
+    float temp_max_min[2];
+    float * return_buffer = malloc(sizeof(float) * 2);
+
+    // Creating the OpenCL kernel:
+    cl_kernel temp_k = clCreateKernel(ocl_program, MAX_MIN_FIND_KERNEL_NAME, &err);
+    ocl_check(err, "[FAIL] Can't create the kernel ", MAX_MIN_FIND_KERNEL_NAME);
+
+    // Copying the host buffer to a device buffer:
+    cl_mem device_buffer = NULL;
+    const size_t db_memsize = host_buffer_elements * sizeof(float);
+    cl_mem_flags db_flags = CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR | CL_MEM_HOST_READ_ONLY;
+
+    device_buffer = clCreateBuffer(ocl_context, db_flags, db_memsize, host_buffer, &err);
+    ocl_check(err, "[FAIL] Can't copy host buffer to device buffer - getting max and min");
+
+    // Creating the support buffer:
+    cl_mem support_buffer = NULL;
+    const size_t sb_memsize = N_WORK_GROUPS * 2 * sizeof(float);
+    cl_mem_flags sb_flags = CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY;
+
+    support_buffer = clCreateBuffer(ocl_context, sb_flags, sb_memsize, NULL, &err);
+    ocl_check(err, "[FAIL] Can't create the support_buffer - getting max and min");
+
+    // Reducing the original device buffer to N_WORK_GROUPS * 2 elements:
+    max_min_find_event[0] = launch_max_min_find(temp_k, ocl_queue, NULL,
+                                                support_buffer, device_buffer, host_buffer_elements, 
+                                                N_WORK_ITEMS_PER_WORK_GROUP, N_WORK_GROUPS);
+
+    // Reducing the support buffer of N_WORK_GROUPS * 2 elements to only two element:
+    max_min_find_event[1] = launch_max_min_find(temp_k, ocl_queue, max_min_find_event[0],
+                                                support_buffer, support_buffer, N_WORK_GROUPS * 2, 
+                                                N_WORK_ITEMS_PER_WORK_GROUP, 1);
+
+    // Reading data from device:
+    err = clEnqueueReadBuffer(ocl_queue, support_buffer, CL_TRUE, 0, sizeof(temp_max_min), &temp_max_min, 1, max_min_find_event+1, &read_event);
+    ocl_check(err, "[FAIL] Can't read the max and min values from device");
+
+    if(log == 1){
+        // Times and bandwidths check:
+        const double first_step_ms = runtime_ms(max_min_find_event[0]);
+        const double first_step_gbs = (host_buffer_elements * sizeof(float) + N_WORK_GROUPS * 2 * sizeof(float))/1.0e6/first_step_ms;
+
+        const double second_step_ms = runtime_ms(max_min_find_event[1]);
+        const double second_step_gbs = (N_WORK_GROUPS * 2 * sizeof(float) + sizeof(float))/1.0e6/second_step_ms;
+
+        const double total_ms = total_runtime_ms(max_min_find_event[0], max_min_find_event[1]);
+        const double total_gbs = (first_step_gbs + second_step_gbs) / 2;
+
+        fprintf(stdout, "[LOG] Getting Max & Min: %d elements, %.5f ms, %.5f GB/s || Max: %f Min: %f ||  Reduce 0: %.5f ms, %.5f GB/s - Reduce 1: %.5f ms, %.5f GB/s\n",
+                host_buffer_elements, total_ms, total_gbs, temp_max_min[0], temp_max_min[1], first_step_ms, first_step_gbs, second_step_ms, second_step_gbs);
+    }
+
+    clReleaseMemObject(device_buffer);
+    clReleaseMemObject(support_buffer);
+    clReleaseKernel(temp_k);
+
+    return_buffer[0] = temp_max_min[0];
+    return_buffer[1] = temp_max_min[1];
+
+    return return_buffer;
+}
+
 float get_max(float * host_buffer, int host_buffer_elements, int log,
-              cl_program ocl_program, cl_context ocl_context, cl_command_queue ocl_queue){
+              cl_program ocl_program, cl_context ocl_context, cl_command_queue ocl_queue)
+{
     cl_int err;
     cl_event max_find_event[2], read_event;
     float temp_max;
@@ -117,7 +185,8 @@ float get_max(float * host_buffer, int host_buffer_elements, int log,
 }
 
 float get_min(float * host_buffer, int host_buffer_elements, int log,
-              cl_program ocl_program, cl_context ocl_context, cl_command_queue ocl_queue){
+              cl_program ocl_program, cl_context ocl_context, cl_command_queue ocl_queue)
+{
     cl_int err;
     cl_event min_find_event[2], read_event;
     float temp_min;
@@ -241,12 +310,15 @@ int main(int argc, char *argv[]){
     int n_elements;
     float * host_buffer;
     float temp_max, temp_min;
+    float * temp_max_min;
 
     fprintf(stdout, "[LOG] START normalization of %s\n", csv_pathname);
 
     for(int i=0; i<cols_array_dim; ++i)
     {
         fprintf(stdout, "\n");
+
+        // Loading data from disk:
         host_buffer = csvl_load_fcolumn(csv_pathname, cols_array[i], &n_elements);
         if(host_buffer == NULL){
             fprintf(stderr, "[FAIL] Can't load from disk column %d\n", cols_array[i]);
@@ -254,10 +326,12 @@ int main(int argc, char *argv[]){
             return -1;
         }
 
-        temp_max = get_max(host_buffer, n_elements, 1, prog, c, q);
-        temp_min = get_min(host_buffer, n_elements, 1, prog, c, q);
-        host_buffer = normalize(host_buffer, n_elements, temp_max, temp_min, 1, prog, c, q, d);
+        // Normalizing Data using the GPU:
+        temp_max_min = get_max_min(host_buffer, n_elements, 1, prog, c, q);
 
+        host_buffer = normalize(host_buffer, n_elements, temp_max_min[0], temp_max_min[1], 1, prog, c, q, d);
+
+        // Writing data to disk:
         fprintf(stdout, "[LOG] Writing changes to disk ...\n");
         err = csvl_write_fcolumn(csv_pathname, host_buffer, n_elements, cols_array[i]);
         if(err == -1){

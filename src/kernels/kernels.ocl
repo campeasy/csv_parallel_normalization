@@ -25,6 +25,82 @@ kernel void normal(global float * restrict output_data,
 
 /*
     The following kernel will "reduce" input_data to output_data (which must have
+    the dimension of the Number of Work Groups * 2 when this kernel is launched).
+    The kernel will insert in output_data the maximum and the minimum values for each Work-Group.
+
+    For find the maximum and minimum of a given buffer, this kernel must be launched two times:
+    the first one reduce to nwg * 2 elements and the second reduce to 2 element, which will
+    be the maximum and the minimum value of input_data.
+*/
+kernel void max_min_find(global float * restrict output_data,
+                         global const float * restrict input_data,
+                         local float * restrict lmem,
+                         int nelements)
+{
+    // Getting infos that will be used later:
+    const int gws = get_global_size(0); // N_WorkGroups x N_WorkItemsPerWorkGroup
+    const int lws = get_local_size(0);  // N_WorkItemsPerWorkGroup
+    const int nwg = gws/lws;            // N_WorkGroups
+
+    int gi = get_global_id(0);
+
+    float max = -2147483647;
+    float min = 2147483647;
+
+    // Phase 1 - Processing all input data with a "Sliding Window" approach:
+    while(gi < nelements){
+        float tmp = input_data[gi];
+
+        if(max < tmp) max = tmp;
+        if(min > tmp) min = tmp;
+
+        gi += gws;
+    }
+
+    // Phase 2 - Storing the found max-min values in Phase 1:
+    // The "Sliding Window" approach will be used also to store data in local memory:
+    int li = get_local_id(0);
+
+    lmem[li] = max;
+    lmem[li + lws] = min;
+
+    // With this approach, local memory will now be "logically splitted" in two parts,
+    // the first half will store the maximum values for each Work-Group, the second one the minimum values for each Work-Group.
+
+    // Phase 3 - "Halving Workers" approach, reducing each WorkGroup to two values:
+    // Initializing the number of Workers as half of the WorkGroup's WorkItems:
+    int nworkers = lws >> 1;
+
+    while(nworkers > 0){
+        // Waiting that all WorkItems have stored the max and min values in local memory (Phase 2):
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        // If this WorkItem is one of the Workers in the WorkGroup:
+        if(li < nworkers){
+
+            // Reducing local memory using a "Sliding Window" approach:
+            if(max < lmem[li + nworkers]) max = lmem[li + nworkers];
+
+            if(min > lmem[li + nworkers + lws]) min = lmem[li + nworkers + lws];
+
+            lmem[li] = max;
+            lmem[li + lws] = min;
+        }
+        nworkers >>= 1;
+    }
+
+    // Phase 4 - Storing the maximum and minimum values to output data:
+    if (li == 0){
+        int wi = get_group_id(0);
+
+        // Data will be write to output data using a "Sliding Window" approach:
+        output_data[wi] = max;
+        output_data[wi + nwg] = min;
+    }
+}
+
+/*
+    The following kernel will "reduce" input_data to output_data (which must have
     the dimension of the Number of Work Groups when this kernel is launched).
     The kernel will insert in output_data the maximum values for each Work-Group.
 
