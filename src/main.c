@@ -105,8 +105,8 @@ float get_max(float * host_buffer, int host_buffer_elements, int log,
         const double total_ms = total_runtime_ms(max_find_event[0], max_find_event[1]);
         const double total_gbs = (first_step_gbs + second_step_gbs) / 2;
 
-        fprintf(stdout, "[LOG] Getting Max: %d elements, %.5f ms, %.5f GB/s  ||  Reduce 0: %.5f ms, %.5f GB/s - Reduce 1: %.5f ms, %.5f GB/s\n",
-                host_buffer_elements, total_ms, total_gbs, first_step_ms, first_step_gbs, second_step_ms, second_step_gbs);
+        fprintf(stdout, "[LOG] Getting Max: %d elements, %.5f ms, %.5f GB/s || Max: %f || Reduce 0: %.5f ms, %.5f GB/s - Reduce 1: %.5f ms, %.5f GB/s\n",
+                host_buffer_elements, total_ms, total_gbs, temp_max, first_step_ms, first_step_gbs, second_step_ms, second_step_gbs);
     }
 
     clReleaseMemObject(device_buffer);
@@ -167,8 +167,8 @@ float get_min(float * host_buffer, int host_buffer_elements, int log,
         const double total_ms = total_runtime_ms(min_find_event[0], min_find_event[1]);
         const double total_gbs = (first_step_gbs + second_step_gbs) / 2;
 
-        fprintf(stdout, "[LOG] Getting Min: %d elements, %.5f ms, %.5f GB/s  ||  Reduce 0: %.5f ms, %.5f GB/s - Reduce 1: %.5f ms, %.5f GB/s\n",
-                host_buffer_elements, total_ms, total_gbs, first_step_ms, first_step_gbs, second_step_ms, second_step_gbs);
+        fprintf(stdout, "[LOG] Getting Min: %d elements, %.5f ms, %.5f GB/s || Min: %f || Reduce 0: %.5f ms, %.5f GB/s - Reduce 1: %.5f ms, %.5f GB/s\n",
+                host_buffer_elements, total_ms, total_gbs, temp_min, first_step_ms, first_step_gbs, second_step_ms, second_step_gbs);
     }
 
     clReleaseMemObject(device_buffer);
