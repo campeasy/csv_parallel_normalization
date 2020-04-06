@@ -11,8 +11,8 @@
 #include "libs/csvl/csvl.h"
 #include "libs/kernel_launchers/kernel_launchers.h"
 
-#define N_WORK_GROUPS 256
-#define N_WORK_ITEMS_PER_WORK_GROUP 32
+#define N_WORK_GROUPS 32
+#define N_WORK_ITEMS_PER_WORK_GROUP 512
 
 float * normalize(float * host_buffer, int host_buffer_elements, float max, float min, int log,
                   cl_program ocl_program, cl_context ocl_context, cl_command_queue ocl_queue, cl_device_id ocl_device)
